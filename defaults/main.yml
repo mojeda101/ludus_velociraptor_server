@@ -1,0 +1,11 @@
+---
+
+velociraptor_version: "v0.72"
+velociraptor_version_patch: "v0.72.0"
+
+velociraptor_admin_user: "admin"
+velociraptor_admin_password: "pleasechangeme"
+
+velociraptor_host: "{{ ansible_default_ipv4.address }}"
+
+velociraptor_install_path: '/opt/velociraptor'

@@ -1,0 +1,76 @@
+---
+
+  - name: "Create Velociraptor Directory"
+    ansible.builtin.file:
+      path: "{{ velociraptor_install_path }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: "Download Velociraptor Binary"
+    ansible.builtin.get_url:
+      url: "https://github.com/Velocidex/velociraptor/releases/download/{{ velociraptor_version }}/velociraptor-{{ velociraptor_version_patch }}-linux-amd64"
+      dest: "{{ velociraptor_install_path }}/velociraptor"
+      validate_certs: false
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: "Generate Velociraptor Server Config"
+    ansible.builtin.shell: "{{ velociraptor_install_path }}/velociraptor config generate --merge \
+        '{
+          \"Client\": {
+              \"server_urls\": [\"wss://{{ velociraptor_host }}:8000/\", \"https://{{ velociraptor_host }}:8000/\"],
+              \"use_self_signed_ssl\": true
+          }, 
+          \"API\": {
+              \"hostname\": \"{{ velociraptor_host }}\",
+              \"bind_address\": \"0.0.0.0\"
+          },
+          \"GUI\": {
+              \"bind_address\": \"0.0.0.0\",
+              \"public_url\": \"https://{{ velociraptor_host }}:8889/\"
+          },
+          \"Frontend\": {
+              \"hostname\": \"{{ velociraptor_host }}\",
+              \"bind_address\": \"0.0.0.0\"
+          }
+        }' > {{ velociraptor_install_path }}/server.config.yaml"
+    args:
+      creates: "{{ velociraptor_install_path }}/server.config.yaml"
+    register: server_config
+
+  - name: "Split Server Config to Client Config"
+    ansible.builtin.shell: "{{ velociraptor_install_path }}/velociraptor config client --config {{ velociraptor_install_path }}/server.config.yaml > {{ velociraptor_install_path }}/client.config.yaml"
+    args:
+      creates: "{{ velociraptor_install_path }}/client.config.yaml"
+    register: client_config
+
+  - name: "Copy the Client Config to Host"
+    ansible.builtin.fetch:
+      src: "{{ velociraptor_install_path }}/client.config.yaml"
+      dest: "/tmp/"
+      flat: yes
+
+  - name: "Generate Velociraptor Installation File"
+    ansible.builtin.shell: "{{ velociraptor_install_path }}/velociraptor debian server --config {{ velociraptor_install_path }}/server.config.yaml --output {{ velociraptor_install_path }}/velociraptor_server.deb"
+    args:
+      creates: "{{ velociraptor_install_path }}/velociraptor_server.deb"
+    register: server_installation_binary
+
+  - name: "Install Velociraptor Server"
+    ansible.builtin.apt:
+      deb: "{{ velociraptor_install_path }}/velociraptor_server.deb"
+
+  - name: "Add Admin User"
+    ansible.builtin.expect: 
+      command: "sudo -u velociraptor velociraptor user add --role=administrator {{ velociraptor_admin_user }}"
+      responses:
+        (?i)Enter user's password: "{{ velociraptor_admin_password }}"
+
+  - name: "Restart Velociraptor Service"
+    ansible.builtin.service:
+      name: velociraptor_server
+      state: restarted
+  

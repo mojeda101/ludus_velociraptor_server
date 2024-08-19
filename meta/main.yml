@@ -1,0 +1,17 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: ludus_velociraptor_server
+  author: fmurer
+  description: An Ansible Role that installs Velociratpor on a Linux server.
+  license: GPLv3
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "all"
+  galaxy_tags:
+    - velociraptor
+
+collections: []
