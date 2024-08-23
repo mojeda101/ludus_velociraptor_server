@@ -47,11 +47,10 @@
       creates: "{{ velociraptor_install_path }}/client.config.yaml"
     register: client_config
 
-  - name: "Copy the Client Config to Host"
-    ansible.builtin.fetch:
+  - name: "Register the Client Config"
+    ansible.builtin.slurp:
       src: "{{ velociraptor_install_path }}/client.config.yaml"
-      dest: "/tmp/"
-      flat: yes
+    register: "client_config_slurp"
 
   - name: "Generate Velociraptor Installation File"
     ansible.builtin.shell: "{{ velociraptor_install_path }}/velociraptor debian server --config {{ velociraptor_install_path }}/server.config.yaml --output {{ velociraptor_install_path }}/velociraptor_server.deb"
